@@ -1,24 +1,20 @@
-ARG DOCKER_REGISTRY=docker.io
-ARG ARCH=amd64
-ARG MAJOR=daffy
-ARG BASE_TAG=${MAJOR}-${ARCH}
+FROM python:3.8
+
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
 
 
-FROM ${DOCKER_REGISTRY}/duckietown/challenge-aido_lf-baseline-duckietown-ml:${BASE_TAG}
+# Install torch, torchvision, and Jupyter
+RUN pip install torch==1.7.0 torchvision==0.8.1 jupyter
 
-COPY requirements.* ./
-RUN cat requirements.* > .requirements.txt
-ARG PIP_INDEX_URL="https://pypi.org/simple/"
-ENV PIP_INDEX_URL=${PIP_INDEX_URL}
-RUN python3 -m pip install  -r .requirements.txt
 
-RUN python3 -m pip list
+# Set up a working directory
+WORKDIR /app
 
-COPY solution /code/solution
-COPY launchers /code
+# Expose the Jupyter port
+EXPOSE 8888
 
-RUN ls /code/solution/nn_models
+# Run Jupyter notebook
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
 
-RUN python3 -c "import torch; torch.hub.set_dir('/code/solution/nn_models'); model = torch.hub.load('ultralytics/yolov5', 'custom', path='/code/solution/nn_models/yolov5.pt')"
-
-CMD ["bash", "/code/submit.sh"]
